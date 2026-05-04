@@ -1,6 +1,8 @@
 import {Request,Response} from 'express'
 import { verifyWebhook } from '@clerk/express/webhooks'
 import { prisma } from '../configs/prisma';
+import * as Sentry from "@sentry/node"
+
 const clerkWebhooks = async(req: Request, res: Response) =>{
     try {
         const evt: any = await verifyWebhook(req)
@@ -68,6 +70,7 @@ const clerkWebhooks = async(req: Request, res: Response) =>{
         res.json({message:"Webhook Recieved : " + type})
 
     } catch (error: any) {
+        Sentry.captureException(error)
         res.status(500).json({message: error.message});
     }
 }
