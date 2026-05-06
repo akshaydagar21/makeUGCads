@@ -4,9 +4,14 @@ import { useNavigate } from "react-router-dom"
 import { useState } from "react";
 import { EllipsisIcon, ImageIcon, Loader2Icon, PlaySquareIcon, Share2Icon, Trash2Icon } from "lucide-react";
 import { GhostButton, PrimaryButton } from "./Buttons";
+import { useAuth } from "@clerk/react";
+import api from "../configs/axios";
+import toast from "react-hot-toast";
 
 const ProjectCard = ({gen, setGenerations, forCommunity = false}: {gen: Project,
 setGenerations: React.Dispatch<React.SetStateAction<Project[]>>, forCommunity?: boolean}) => {
+  
+  const {getToken} = useAuth()
 
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false)
@@ -14,11 +19,34 @@ setGenerations: React.Dispatch<React.SetStateAction<Project[]>>, forCommunity?: 
   const handleDelete = async (id: string)=>{
     const confirm = window.confirm('Are you sure you want to delete this project?');
     if(!confirm) return;
-    console.log(id)
+    
+    try {
+        const token = await getToken();
+        const { data } = await api.delete(`/api/project/${id}`,{
+            headers:{Authorization: `Bearer ${token}` }
+        })
+        setGenerations((generations)=>generations.filter((gen)=>gen.id !== id));
+        toast.success(data.message);
+    } catch (error:any) {
+        toast.error(error?.response?.data?.message || error.message);
+        console.log(error);
+    }
   }
 
     const togglePublish = async (projectId: string)=>{
-        console.log(projectId)
+        
+        try {
+            const token = await getToken();
+            const { data } = await api.get(`/api/user/publish/${projectId}`,{
+                headers:{Authorization: `Bearer ${token}` }
+            })
+            setGenerations((generations)=>generations.map((gen)=>gen.id === projectId? {...gen, isPublished: data.isPublished}: gen));
+
+            toast.success(data.isPublished? 'Project published': 'Project Unpublished');
+        } catch (error:any) {
+            toast.error(error?.response?.data?.message || error.message);
+            console.log(error);
+        }
     }
 
   return (
